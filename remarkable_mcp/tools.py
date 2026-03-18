@@ -23,12 +23,16 @@ from mcp.types import (
 
 from remarkable_mcp.api import (
     REMARKABLE_TOKEN,
+    create_folder_path,
+    delete_item_by_path,
     download_raw_file,
     get_file_type,
     get_item_path,
     get_items_by_id,
     get_items_by_parent,
     get_rmapi,
+    move_item_by_path,
+    upload_document,
 )
 from remarkable_mcp.extract import (
     cache_page_ocr,
@@ -1655,3 +1659,164 @@ async def remarkable_image(
             message=str(e),
             suggestion="Check remarkable_status() to verify your connection.",
         )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        title="Upload Document",
+        readOnlyHint=False,
+        destructiveHint=False,
+    )
+)
+def remarkable_upload(file_path: str, destination: str = "/") -> str:
+    """
+    <usecase>Upload a PDF or EPUB file to your reMarkable tablet.</usecase>
+    <instructions>
+    Uploads a local file from your computer to the tablet.
+    Only PDF and EPUB formats are supported.
+
+    The destination is a folder path on the tablet where the file will be placed.
+    If the destination folder doesn't exist, use remarkable_mkdir first.
+    </instructions>
+    <parameters>
+    - file_path: Absolute path to the local PDF or EPUB file
+    - destination: Folder path on tablet (default: "/" for root)
+    </parameters>
+    <examples>
+    - remarkable_upload("/Users/praveen/report.pdf", "/01 Work/USMS-JPATS")
+    - remarkable_upload("/tmp/ebook.epub", "/05 Personal/Reading")
+    - remarkable_upload("/Users/praveen/notes.pdf")
+    </examples>
+    """
+    try:
+        result = upload_document(file_path, destination)
+        return make_response(
+            result,
+            f"Uploaded '{result['name']}' to {result['destination']}."
+        )
+    except FileNotFoundError as e:
+        return make_error("not_found", str(e), "Check the file path exists on your Mac.")
+    except ValueError as e:
+        return make_error("invalid_type", str(e), "Only .pdf and .epub files are supported.")
+    except Exception as e:
+        return make_error("upload_failed", str(e), "Check tablet connection with remarkable_status().")
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        title="Create Folder",
+        readOnlyHint=False,
+        destructiveHint=False,
+    )
+)
+def remarkable_mkdir(path: str) -> str:
+    """
+    <usecase>Create a folder (or nested folders) on your reMarkable tablet.</usecase>
+    <instructions>
+    Creates the folder at the given path. If intermediate folders don't exist,
+    they are created automatically (like mkdir -p).
+
+    Use this to set up your folder structure before uploading documents.
+    </instructions>
+    <parameters>
+    - path: Full folder path to create (e.g., "/01 Work/NN Inc/Galaxy")
+    </parameters>
+    <examples>
+    - remarkable_mkdir("/01 Work")
+    - remarkable_mkdir("/01 Work/USMS-JPATS/JMISFIN")
+    - remarkable_mkdir("/05 Personal/Reading")
+    </examples>
+    """
+    try:
+        result = create_folder_path(path)
+        if result["created_folders"]:
+            msg = f"Created: {', '.join(result['created_folders'])}."
+        else:
+            msg = f"All folders in '{path}' already exist."
+        return make_response(result, msg)
+    except ValueError as e:
+        return make_error("invalid_path", str(e), "Provide a path like '/Folder/Subfolder'.")
+    except Exception as e:
+        return make_error("mkdir_failed", str(e), "Check tablet connection with remarkable_status().")
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        title="Delete Document or Folder",
+        readOnlyHint=False,
+        destructiveHint=True,
+    )
+)
+def remarkable_delete(path: str) -> str:
+    """
+    <usecase>Delete a document or folder from your reMarkable tablet.</usecase>
+    <instructions>
+    Permanently deletes the item at the given path. This cannot be undone.
+
+    For folders, all contents are deleted recursively.
+    Use remarkable_browse to verify the path before deleting.
+    </instructions>
+    <parameters>
+    - path: Exact path to the document or folder to delete
+    </parameters>
+    <examples>
+    - remarkable_delete("/01 Work/Old Project")
+    - remarkable_delete("/05 Personal/Reading/finished-book.pdf")
+    </examples>
+    """
+    try:
+        result = delete_item_by_path(path)
+        return make_response(
+            {"deleted": path, "success": result},
+            f"Deleted '{path}'."
+        )
+    except FileNotFoundError:
+        return make_error(
+            "not_found",
+            f"Path not found: {path}",
+            "Use remarkable_browse() to find the correct path."
+        )
+    except Exception as e:
+        return make_error("delete_failed", str(e), "Check tablet connection with remarkable_status().")
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        title="Move or Rename",
+        readOnlyHint=False,
+        destructiveHint=False,
+    )
+)
+def remarkable_move(source: str, destination: str, new_name: Optional[str] = None) -> str:
+    """
+    <usecase>Move or rename a document/folder on your reMarkable tablet.</usecase>
+    <instructions>
+    Move a document or folder to a new location, optionally renaming it.
+
+    To rename without moving, set destination to the current parent folder.
+    To move without renaming, omit new_name.
+    </instructions>
+    <parameters>
+    - source: Current path of the item
+    - destination: New parent folder path
+    - new_name: Optional new name for the item
+    </parameters>
+    <examples>
+    - remarkable_move("/Meeting Notes", "/01 Work/USMS-JPATS")
+    - remarkable_move("/old-name.pdf", "/", new_name="new-name.pdf")
+    - remarkable_move("/01 Work/Doc", "/02 Archive", new_name="2026-Doc")
+    </examples>
+    """
+    try:
+        result = move_item_by_path(source, destination, new_name)
+        return make_response(
+            result,
+            f"Moved '{result['name']}' from {result['from']} to {result['to']}."
+        )
+    except FileNotFoundError as e:
+        return make_error(
+            "not_found", str(e),
+            "Use remarkable_browse() to verify source and destination paths."
+        )
+    except Exception as e:
+        return make_error("move_failed", str(e), "Check tablet connection with remarkable_status().")

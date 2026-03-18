@@ -106,9 +106,9 @@ class TestMCPServerInitialization:
 
     @pytest.mark.asyncio
     async def test_tools_count(self):
-        """Test that we have exactly 6 intent-based tools."""
+        """Test that we have exactly 10 intent-based tools (6 read + 4 write)."""
         tools = await mcp.list_tools()
-        assert len(tools) == 6, f"Expected 6 tools, got {len(tools)}"
+        assert len(tools) == 10, f"Expected 10 tools, got {len(tools)}"
 
     @pytest.mark.asyncio
     async def test_tool_schemas(self):
@@ -681,7 +681,7 @@ class TestE2E:
         """Test that server can list all tools (e2e)."""
         tools = await mcp.list_tools()
 
-        assert len(tools) == 6
+        assert len(tools) == 10
 
         # Check each tool has required properties and starts with remarkable_
         for tool in tools:

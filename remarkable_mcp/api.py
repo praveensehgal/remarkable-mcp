@@ -233,3 +233,131 @@ def get_file_type(client, doc) -> str:
         return "epub"
 
     return "notebook"
+
+
+def upload_document(file_path: str, destination: str = "/") -> Dict[str, Any]:
+    """Upload a local file to the tablet.
+
+    Args:
+        file_path: Local file path (PDF or EPUB)
+        destination: Folder path on tablet (e.g., '/Work/Projects')
+
+    Returns:
+        Dict with upload result info
+    """
+    import os as _os
+    client = get_rmapi()
+    collection = client.get_meta_items()
+
+    parent_id = resolve_path_to_parent_id(destination, collection)
+
+    if not _os.path.isfile(file_path):
+        raise FileNotFoundError(f"Local file not found: {file_path}")
+
+    filename = _os.path.basename(file_path)
+    ext = _os.path.splitext(filename)[1].lower()
+    if ext not in (".pdf", ".epub"):
+        raise ValueError(f"Unsupported file type: {ext}. Only PDF and EPUB are supported.")
+
+    with open(file_path, "rb") as f:
+        file_data = f.read()
+
+    doc = client.upload(file_data, filename, parent_id=parent_id)
+    return {
+        "name": doc.name,
+        "destination": destination,
+        "size_bytes": len(file_data),
+        "type": ext.lstrip("."),
+    }
+
+
+def create_folder_path(path: str) -> Dict[str, Any]:
+    """Create a folder, including intermediate folders (mkdir -p).
+
+    Args:
+        path: Full folder path (e.g., '/Work/Projects/Alpha')
+
+    Returns:
+        Dict with created folder info
+    """
+    client = get_rmapi()
+    path = path.strip("/")
+    if not path:
+        raise ValueError("Cannot create root folder")
+
+    parts = path.split("/")
+    current_parent = ""
+    created = []
+
+    for part in parts:
+        collection = client.get_meta_items()
+        existing = None
+        for item in collection:
+            parent = item.Parent if hasattr(item, "Parent") else ""
+            if (parent == current_parent
+                    and item.VissibleName == part
+                    and item.is_folder):
+                existing = item
+                break
+
+        if existing:
+            current_parent = existing.ID
+        else:
+            client.create_folder(part, parent_id=current_parent)
+            created.append(part)
+            # Refresh to get the new folder's actual ID
+            collection = client.get_meta_items()
+            for item in collection:
+                parent_attr = item.Parent if hasattr(item, "Parent") else ""
+                if parent_attr == current_parent and item.VissibleName == part:
+                    current_parent = item.ID
+                    break
+
+    return {
+        "path": "/" + "/".join(parts),
+        "created_folders": created,
+        "already_existed": len(parts) - len(created),
+    }
+
+
+def delete_item_by_path(path: str) -> bool:
+    """Delete a document or folder by path.
+
+    Args:
+        path: Full path (e.g., '/Work/Old Doc')
+
+    Returns:
+        True if deleted
+    """
+    client = get_rmapi()
+    collection = client.get_meta_items()
+    item = resolve_path_to_item(path, collection)
+    return client.delete_item(item.ID)
+
+
+def move_item_by_path(
+    source: str, destination: str, new_name: str = None
+) -> Dict[str, Any]:
+    """Move or rename a document/folder.
+
+    Args:
+        source: Current path (e.g., '/Work/Old Doc')
+        destination: New parent folder path (e.g., '/Archive')
+        new_name: New name (optional)
+
+    Returns:
+        Dict with move result info
+    """
+    client = get_rmapi()
+    collection = client.get_meta_items()
+
+    source_item = resolve_path_to_item(source, collection)
+    dest_parent_id = resolve_path_to_parent_id(destination, collection)
+
+    client.move_item(source_item.ID, new_parent_id=dest_parent_id, new_name=new_name)
+
+    return {
+        "name": new_name or source_item.VissibleName,
+        "from": source,
+        "to": destination,
+    }
