@@ -131,6 +131,62 @@ def get_item_path(item, items_by_id: Dict[str, Any]) -> str:
     return "/" + "/".join(path_parts)
 
 
+def resolve_path_to_item(path: str, collection) -> Any:
+    """Resolve a human-readable path like '/Work/Projects/Doc' to an item.
+
+    Args:
+        path: Absolute path starting with /
+        collection: List of items from client.get_meta_items()
+
+    Returns:
+        The matching item
+
+    Raises:
+        FileNotFoundError: If path doesn't exist
+    """
+    path = path.strip("/")
+    if not path:
+        raise FileNotFoundError("Cannot resolve empty path")
+
+    parts = path.split("/")
+    current_parent = ""
+
+    for i, part in enumerate(parts):
+        found = None
+        for item in collection:
+            parent = item.Parent if hasattr(item, "Parent") else ""
+            if parent == current_parent and item.VissibleName == part:
+                found = item
+                break
+        if found is None:
+            raise FileNotFoundError(f"Path not found: /{'/'.join(parts[:i+1])}")
+        if i < len(parts) - 1:
+            current_parent = found.ID
+        else:
+            return found
+
+    raise FileNotFoundError(f"Path not found: /{path}")
+
+
+def resolve_path_to_parent_id(path: str, collection) -> str:
+    """Resolve a folder path to its GUID. Returns '' for root '/'.
+
+    Args:
+        path: Folder path like '/Work/Projects' or '/'
+        collection: List of items from client.get_meta_items()
+
+    Returns:
+        The folder's GUID, or '' for root
+    """
+    path = path.strip("/")
+    if not path:
+        return ""
+    item = resolve_path_to_item("/" + path, collection)
+    if not item.is_folder:
+        raise ValueError(f"Path is not a folder: /{path}")
+    return item.ID
+
+
 def download_raw_file(client, doc, extension: str):
     """
     Download a raw file (PDF or EPUB) for a document.

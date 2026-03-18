@@ -74,6 +74,11 @@ Security Note:
         action="store_true",
         help="Use USB web interface (connect via USB cable, enable in Storage Settings)",
     )
+    parser.add_argument(
+        "--wifi",
+        action="store_true",
+        help="Use WiFi connection (set REMARKABLE_HOST env var to tablet IP)",
+    )
 
     args = parser.parse_args()
 
@@ -110,6 +115,11 @@ Security Note:
             sys.exit(1)
     elif args.usb:
         # USB web mode - set environment variable and run server
+        os.environ["REMARKABLE_USE_USB_WEB"] = "1"
+        from remarkable_mcp.server import run
+
+        run()
+    elif args.wifi:
         os.environ["REMARKABLE_USE_USB_WEB"] = "1"
         from remarkable_mcp.server import run
 

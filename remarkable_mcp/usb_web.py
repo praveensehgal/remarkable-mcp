@@ -350,6 +350,8 @@ def create_usb_web_client(
     import os
 
     return USBWebClient(
-        host=host or os.environ.get("REMARKABLE_USB_HOST", DEFAULT_USB_HOST),
+        host=host
+        or os.environ.get("REMARKABLE_HOST")
+        or os.environ.get("REMARKABLE_USB_HOST", DEFAULT_USB_HOST),
         timeout=timeout or int(os.environ.get("REMARKABLE_USB_TIMEOUT", "10")),
     )
