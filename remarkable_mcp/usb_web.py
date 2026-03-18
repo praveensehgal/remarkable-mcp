@@ -38,6 +38,7 @@ DOCUMENTS_URL = "/documents/"
 DOWNLOAD_URL = "/download/{guid}/rmdoc"
 DOWNLOAD_PDF_URL = "/download/{guid}/pdf"
 THUMBNAIL_URL = "/thumbnail/{guid}"
+UPLOAD_URL = "/upload"
 
 
 @dataclass
@@ -329,6 +330,138 @@ class USBWebClient:
             self.get_meta_items()
 
         return {doc_id: self.get_file_type(doc) for doc_id, doc in self._documents_by_id.items()}
+
+    def upload(self, file_data: bytes, filename: str, parent_id: str = "") -> Document:
+        """Upload a PDF or EPUB to the tablet.
+
+        Args:
+            file_data: Raw file bytes
+            filename: Original filename (e.g., 'report.pdf')
+            parent_id: Parent folder GUID ('' for root)
+
+        Returns:
+            Document object for the uploaded file
+        """
+        url = f"{self.host}{UPLOAD_URL}"
+        files = {"file": (filename, file_data)}
+        data = {}
+        if parent_id:
+            data["parent"] = parent_id
+
+        try:
+            response = requests.post(url, files=files, data=data, timeout=self.DOWNLOAD_TIMEOUT)
+            response.raise_for_status()
+            self._documents = []
+            self._documents_by_id = {}
+            return self._parse_upload_response(response, filename, parent_id)
+        except requests.ConnectionError:
+            raise RuntimeError(
+                f"Cannot connect to reMarkable at {self.host}. "
+                "Check WiFi connection and tablet IP."
+            )
+        except requests.HTTPError as e:
+            raise RuntimeError(f"Upload failed: {e}")
+
+    def _parse_upload_response(self, response, filename: str, parent_id: str) -> Document:
+        """Parse upload response into a Document."""
+        try:
+            data = response.json()
+            if isinstance(data, list) and data:
+                return self._parse_document_entry(data[0], parent=parent_id)
+        except Exception:
+            pass
+        return Document(
+            id="uploaded",
+            hash="",
+            name=filename,
+            doc_type="DocumentType",
+            parent=parent_id,
+        )
+
+    def create_folder(self, name: str, parent_id: str = "") -> Document:
+        """Create a new folder on the tablet.
+
+        Args:
+            name: Folder name
+            parent_id: Parent folder GUID ('' for root)
+
+        Returns:
+            Document object for the created folder
+        """
+        url = f"{self.host}{UPLOAD_URL}"
+        import json as json_mod
+
+        metadata = json_mod.dumps({
+            "type": "CollectionType",
+            "visibleName": name,
+            "parent": parent_id,
+        })
+
+        files = {"file": (f"{name}.metadata", metadata.encode(), "application/json")}
+        data = {}
+        if parent_id:
+            data["parent"] = parent_id
+
+        try:
+            response = requests.post(url, files=files, data=data, timeout=self.timeout)
+            response.raise_for_status()
+            self._documents = []
+            self._documents_by_id = {}
+            return Document(
+                id="pending",
+                hash="",
+                name=name,
+                doc_type="CollectionType",
+                parent=parent_id,
+            )
+        except requests.HTTPError as e:
+            raise RuntimeError(f"Failed to create folder '{name}': {e}")
+
+    def delete_item(self, doc_id: str) -> bool:
+        """Delete a document or folder from the tablet.
+
+        Args:
+            doc_id: Document/folder GUID
+
+        Returns:
+            True if deleted successfully
+        """
+        url = f"{self.host}/documents/{doc_id}"
+        try:
+            response = requests.delete(url, timeout=self.timeout)
+            response.raise_for_status()
+            self._documents = []
+            self._documents_by_id = {}
+            return True
+        except requests.HTTPError as e:
+            raise RuntimeError(f"Failed to delete {doc_id}: {e}")
+
+    def move_item(self, doc_id: str, new_parent_id: str = None, new_name: str = None) -> bool:
+        """Move or rename a document/folder.
+
+        Args:
+            doc_id: Document/folder GUID
+            new_parent_id: New parent folder GUID (None to keep current)
+            new_name: New name (None to keep current)
+
+        Returns:
+            True if moved successfully
+        """
+        url = f"{self.host}/documents/{doc_id}"
+        payload = {}
+        if new_parent_id is not None:
+            payload["parent"] = new_parent_id
+        if new_name is not None:
+            payload["VissibleName"] = new_name
+
+        try:
+            response = requests.put(url, json=payload, timeout=self.timeout)
+            response.raise_for_status()
+            self._documents = []
+            self._documents_by_id = {}
+            return True
+        except requests.HTTPError as e:
+            raise RuntimeError(f"Failed to move/rename {doc_id}: {e}")
 
 
 def check_usb_web_available(host: str = DEFAULT_USB_HOST) -> bool:
