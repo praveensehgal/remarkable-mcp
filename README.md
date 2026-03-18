@@ -2,7 +2,7 @@
 
 Unlock the full potential of your reMarkable tablet as a **second brain** for AI assistants. This MCP server lets Claude, VS Code Copilot, and other AI tools read, search, and traverse your entire reMarkable library — including handwritten notes via OCR.
 
-<!-- mcp-name: io.github.SamMorrowDrums/remarkable -->
+<!-- mcp-name: io.github.praveensehgal/remarkable -->
 
 ## Why remarkable-mcp?
 
