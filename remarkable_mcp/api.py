@@ -303,15 +303,13 @@ def create_folder_path(path: str) -> Dict[str, Any]:
         if existing:
             current_parent = existing.ID
         else:
-            client.create_folder(part, parent_id=current_parent)
+            doc = client.create_folder(part, parent_id=current_parent)
             created.append(part)
-            # Refresh to get the new folder's actual ID
-            collection = client.get_meta_items()
-            for item in collection:
-                parent_attr = item.Parent if hasattr(item, "Parent") else ""
-                if parent_attr == current_parent and item.VissibleName == part:
-                    current_parent = item.ID
-                    break
+            current_parent = doc.ID
+
+    # Restart UI once after all folders are created
+    if created and hasattr(client, "restart_ui"):
+        client.restart_ui()
 
     return {
         "path": "/" + "/".join(parts),
@@ -320,23 +318,27 @@ def create_folder_path(path: str) -> Dict[str, Any]:
     }
 
 
-def delete_item_by_path(path: str) -> bool:
-    """Delete a document or folder by path.
+def delete_item_by_path(path: str, doc_id: str = None) -> bool:
+    """Delete a document or folder by path or ID.
 
     Args:
         path: Full path (e.g., '/Work/Old Doc')
+        doc_id: Direct document ID (skips path resolution if provided)
 
     Returns:
         True if deleted
     """
     client = get_rmapi()
-    collection = client.get_meta_items()
-    item = resolve_path_to_item(path, collection)
-    return client.delete_item(item.ID)
+    if not doc_id:
+        collection = client.get_meta_items()
+        item = resolve_path_to_item(path, collection)
+        doc_id = item.ID
+    return client.delete_item(doc_id)
 
 
 def move_item_by_path(
-    source: str, destination: str, new_name: str = None
+    source: str, destination: str, new_name: str = None,
+    source_id: str = None, dest_id: str = None,
 ) -> Dict[str, Any]:
     """Move or rename a document/folder.
 
@@ -344,6 +346,8 @@ def move_item_by_path(
         source: Current path (e.g., '/Work/Old Doc')
         destination: New parent folder path (e.g., '/Archive')
         new_name: New name (optional)
+        source_id: Direct source ID (skips path resolution)
+        dest_id: Direct destination folder ID (skips path resolution)
 
     Returns:
         Dict with move result info
@@ -351,13 +355,22 @@ def move_item_by_path(
     client = get_rmapi()
     collection = client.get_meta_items()
 
-    source_item = resolve_path_to_item(source, collection)
-    dest_parent_id = resolve_path_to_parent_id(destination, collection)
+    if not source_id:
+        source_item = resolve_path_to_item(source, collection)
+        source_id = source_item.ID
+        source_name = source_item.VissibleName
+    else:
+        source_name = source.rsplit("/", 1)[-1]
 
-    client.move_item(source_item.ID, new_parent_id=dest_parent_id, new_name=new_name)
+    if not dest_id:
+        dest_parent_id = resolve_path_to_parent_id(destination, collection)
+    else:
+        dest_parent_id = dest_id
+
+    client.move_item(source_id, new_parent_id=dest_parent_id, new_name=new_name)
 
     return {
-        "name": new_name or source_item.VissibleName,
+        "name": new_name or source_name,
         "from": source,
         "to": destination,
     }

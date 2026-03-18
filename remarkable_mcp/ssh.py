@@ -453,6 +453,156 @@ class SSHClient:
         return self._file_type_cache
 
 
+    def _scp_upload(self, local_data: bytes, remote_path: str, timeout: int = 60) -> None:
+        """Upload data to a file on the tablet via SSH."""
+        ssh_args = [
+            "ssh",
+            "-o", "ConnectTimeout=5",
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-p", str(self.port),
+            f"{self.user}@{self.host}",
+            f"cat > '{remote_path}'",
+        ]
+        if not self.password:
+            ssh_args.insert(1, "-o")
+            ssh_args.insert(2, "BatchMode=yes")
+        else:
+            ssh_args = ["sshpass", "-p", self.password] + ssh_args
+
+        result = subprocess.run(
+            ssh_args, input=local_data, capture_output=True, timeout=timeout,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"SSH upload failed: {result.stderr.decode()}")
+
+    def upload(self, file_data: bytes, filename: str, parent_id: str = "") -> Document:
+        """Upload a PDF or EPUB to the tablet filesystem."""
+        import uuid as _uuid
+        doc_id = str(_uuid.uuid4())
+        now_ms = str(int(datetime.now().timestamp() * 1000))
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        # Upload the file
+        self._scp_upload(file_data, f"{XOCHITL_PATH}/{doc_id}.{ext}")
+
+        # Create .metadata
+        metadata = json.dumps({
+            "deleted": False,
+            "lastModified": now_ms,
+            "metadatamodified": True,
+            "modified": True,
+            "parent": parent_id,
+            "pinned": False,
+            "synced": False,
+            "type": "DocumentType",
+            "version": 1,
+            "visibleName": filename.rsplit(".", 1)[0] if "." in filename else filename,
+        }, indent=4)
+        self._scp_upload(metadata.encode(), f"{XOCHITL_PATH}/{doc_id}.metadata")
+
+        # Create .content
+        content = json.dumps({
+            "dummyDocument": False,
+            "extraMetadata": {},
+            "fileType": ext,
+            "fontName": "",
+            "lastOpenedPage": 0,
+            "legacyEpub": False,
+            "lineHeight": -1,
+            "margins": 100,
+            "orientation": "portrait",
+            "pageCount": 0,
+            "textScale": 1,
+            "transform": {},
+        }, indent=4)
+        self._scp_upload(content.encode(), f"{XOCHITL_PATH}/{doc_id}.content")
+
+        # Restart xochitl to pick up changes
+        self.restart_ui()
+
+        self._documents = []
+        self._documents_by_id = {}
+        return Document(id=doc_id, hash="", name=filename, doc_type="DocumentType", parent=parent_id)
+
+    def create_folder(self, name: str, parent_id: str = "") -> Document:
+        """Create a folder on the tablet filesystem. Does NOT restart xochitl."""
+        import uuid as _uuid
+        doc_id = str(_uuid.uuid4())
+        now_ms = str(int(datetime.now().timestamp() * 1000))
+
+        metadata = json.dumps({
+            "deleted": False,
+            "lastModified": now_ms,
+            "metadatamodified": True,
+            "modified": True,
+            "parent": parent_id,
+            "pinned": False,
+            "synced": False,
+            "type": "CollectionType",
+            "version": 1,
+            "visibleName": name,
+        }, indent=4)
+        self._scp_upload(metadata.encode(), f"{XOCHITL_PATH}/{doc_id}.metadata")
+
+        content = json.dumps({
+            "dummyDocument": False,
+            "extraMetadata": {},
+            "fileType": "",
+            "fontName": "",
+            "lastOpenedPage": 0,
+            "legacyEpub": False,
+            "lineHeight": -1,
+            "margins": 100,
+            "orientation": "portrait",
+            "pageCount": 0,
+            "textScale": 1,
+            "transform": {},
+        }, indent=4)
+        self._scp_upload(content.encode(), f"{XOCHITL_PATH}/{doc_id}.content")
+
+        self._documents = []
+        self._documents_by_id = {}
+        return Document(id=doc_id, hash=doc_id, name=name, doc_type="CollectionType", parent=parent_id)
+
+    def delete_item(self, doc_id: str) -> bool:
+        """Delete a document or folder from the tablet filesystem."""
+        # Set deleted flag in metadata instead of removing files
+        meta_path = f"{XOCHITL_PATH}/{doc_id}.metadata"
+        meta_json = self._ssh_command(f"cat '{meta_path}'")
+        meta = json.loads(meta_json)
+        meta["deleted"] = True
+        meta["metadatamodified"] = True
+        meta["modified"] = True
+        self._scp_upload(json.dumps(meta, indent=4).encode(), meta_path)
+        self.restart_ui()
+        self._documents = []
+        self._documents_by_id = {}
+        return True
+
+    def move_item(self, doc_id: str, new_parent_id: str = None, new_name: str = None) -> bool:
+        """Move or rename a document/folder on the tablet filesystem."""
+        meta_path = f"{XOCHITL_PATH}/{doc_id}.metadata"
+        meta_json = self._ssh_command(f"cat '{meta_path}'")
+        meta = json.loads(meta_json)
+        if new_parent_id is not None:
+            meta["parent"] = new_parent_id
+        if new_name is not None:
+            meta["visibleName"] = new_name
+        meta["metadatamodified"] = True
+        meta["modified"] = True
+        self._scp_upload(json.dumps(meta, indent=4).encode(), meta_path)
+        self.restart_ui()
+        self._documents = []
+        self._documents_by_id = {}
+        return True
+
+    def restart_ui(self) -> None:
+        """Signal xochitl to reload. Never restart — it kills WiFi SSH."""
+        # xochitl monitors the filesystem via inotify, so changes are
+        # picked up automatically. No restart needed.
+        pass
+
+
 def check_ssh_available(
     host: str = DEFAULT_SSH_HOST,
     user: str = DEFAULT_SSH_USER,
