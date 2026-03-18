@@ -1,8 +1,8 @@
 """Tests for write API functions and MCP tool registration."""
-import json
 import os
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 def _make_doc(doc_id, name, parent="", doc_type="DocumentType"):

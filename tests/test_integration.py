@@ -3,6 +3,7 @@ Integration tests — run against a real reMarkable tablet.
 Skipped by default. Run with: REMARKABLE_HOST=http://<ip> pytest tests/test_integration.py -v
 """
 import os
+
 import pytest
 
 pytestmark = pytest.mark.skipif(

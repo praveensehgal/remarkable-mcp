@@ -522,7 +522,10 @@ class SSHClient:
 
         self._documents = []
         self._documents_by_id = {}
-        return Document(id=doc_id, hash="", name=filename, doc_type="DocumentType", parent=parent_id)
+        return Document(
+            id=doc_id, hash="", name=filename,
+            doc_type="DocumentType", parent=parent_id,
+        )
 
     def create_folder(self, name: str, parent_id: str = "") -> Document:
         """Create a folder on the tablet filesystem. Does NOT restart xochitl."""
@@ -562,7 +565,10 @@ class SSHClient:
 
         self._documents = []
         self._documents_by_id = {}
-        return Document(id=doc_id, hash=doc_id, name=name, doc_type="CollectionType", parent=parent_id)
+        return Document(
+            id=doc_id, hash=doc_id, name=name,
+            doc_type="CollectionType", parent=parent_id,
+        )
 
     def delete_item(self, doc_id: str) -> bool:
         """Delete a document or folder from the tablet filesystem."""

@@ -1699,7 +1699,10 @@ def remarkable_upload(file_path: str, destination: str = "/") -> str:
     except ValueError as e:
         return make_error("invalid_type", str(e), "Only .pdf and .epub files are supported.")
     except Exception as e:
-        return make_error("upload_failed", str(e), "Check tablet connection with remarkable_status().")
+        return make_error(
+            "upload_failed", str(e),
+            "Check tablet connection with remarkable_status().",
+        )
 
 
 @mcp.tool(
@@ -1737,7 +1740,10 @@ def remarkable_mkdir(path: str) -> str:
     except ValueError as e:
         return make_error("invalid_path", str(e), "Provide a path like '/Folder/Subfolder'.")
     except Exception as e:
-        return make_error("mkdir_failed", str(e), "Check tablet connection with remarkable_status().")
+        return make_error(
+            "mkdir_failed", str(e),
+            "Check tablet connection with remarkable_status().",
+        )
 
 
 @mcp.tool(
@@ -1777,7 +1783,10 @@ def remarkable_delete(path: str) -> str:
             "Use remarkable_browse() to find the correct path."
         )
     except Exception as e:
-        return make_error("delete_failed", str(e), "Check tablet connection with remarkable_status().")
+        return make_error(
+            "delete_failed", str(e),
+            "Check tablet connection with remarkable_status().",
+        )
 
 
 @mcp.tool(
@@ -1819,4 +1828,7 @@ def remarkable_move(source: str, destination: str, new_name: Optional[str] = Non
             "Use remarkable_browse() to verify source and destination paths."
         )
     except Exception as e:
-        return make_error("move_failed", str(e), "Check tablet connection with remarkable_status().")
+        return make_error(
+            "move_failed", str(e),
+            "Check tablet connection with remarkable_status().",
+        )

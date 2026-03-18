@@ -1,9 +1,10 @@
 """Tests for WiFi host support and path resolution."""
 import os
-import pytest
-from unittest.mock import MagicMock
-from remarkable_mcp.usb_web import create_usb_web_client, DEFAULT_USB_HOST
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from remarkable_mcp.usb_web import DEFAULT_USB_HOST, USBWebClient, create_usb_web_client
 
 # --- WiFi Host Tests ---
 
@@ -107,9 +108,6 @@ class TestPathResolution:
 
 
 # --- USB Web Write Method Tests ---
-
-from unittest.mock import patch
-from remarkable_mcp.usb_web import USBWebClient
 
 
 class TestUSBWebUpload:
