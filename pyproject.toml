@@ -1,6 +1,6 @@
 [project]
 name = "remarkable-mcp-rw"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server for reMarkable tablets — read, write, and manage documents from Claude Code"
 readme = "README.md"
 license = { text = "MIT" }
