@@ -1,14 +1,16 @@
 [project]
-name = "remarkable-mcp"
+name = "remarkable-mcp-rw"
 version = "0.1.0"
-description = "MCP server for accessing reMarkable tablet data"
+description = "MCP server for reMarkable tablets — read, write, and manage documents from Claude Code"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [
+    { name = "Praveen Sehgal" },
     { name = "Sam Morrow" }
 ]
-keywords = ["mcp", "remarkable", "tablet", "notes", "sync"]
+urls = { Homepage = "https://github.com/praveensehgal/remarkable-mcp", Repository = "https://github.com/praveensehgal/remarkable-mcp" }
+keywords = ["mcp", "remarkable", "tablet", "notes", "sync", "claude-code", "write"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -45,6 +47,7 @@ ocr = [
 
 [project.scripts]
 remarkable-mcp = "remarkable_mcp.cli:main"
+remarkable-mcp-rw = "remarkable_mcp.cli:main"
 
 [build-system]
 requires = ["hatchling"]
