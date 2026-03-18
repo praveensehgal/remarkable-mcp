@@ -65,7 +65,7 @@ def _build_instructions() -> str:
 
     instructions = """# reMarkable MCP Server
 
-Access documents from your reMarkable tablet. All operations are read-only.
+Access and manage documents on your reMarkable tablet. Supports both reading and writing.
 
 ## Available Tools
 
@@ -74,6 +74,10 @@ Access documents from your reMarkable tablet. All operations are read-only.
 - `remarkable_recent(limit)` - Get recently modified documents
 - `remarkable_status()` - Check connection and diagnose issues
 - `remarkable_image(document, page, include_ocr)` - Get a PNG image with optional OCR
+- `remarkable_upload(file_path, destination)` - Upload a PDF/EPUB to a folder
+- `remarkable_mkdir(path)` - Create folders (supports nested creation)
+- `remarkable_delete(path)` - Delete a document or folder
+- `remarkable_move(source, destination, new_name)` - Move or rename items
 
 ## Recommended Workflows
 
@@ -103,6 +107,13 @@ Use pagination to avoid overwhelming context. The response includes:
 - Recent → Read: Check what was recently modified, then read specific ones
 - Read with grep: Search for specific content within large documents
 - Browse → Image: Find a document then get its visual representation
+
+### Writing & Organizing
+- Use `remarkable_mkdir("/Folder/Sub")` to create destination folders first
+- Use `remarkable_upload("/local/path/file.pdf", "/Folder/Sub")` to upload
+- Use `remarkable_move(source, destination)` to reorganize documents
+- Use `remarkable_delete(path)` to remove unwanted items
+- Always use `remarkable_browse()` to verify paths before write operations
 
 ## MCP Resources
 

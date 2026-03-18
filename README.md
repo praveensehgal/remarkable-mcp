@@ -227,10 +227,39 @@ Or copy the `SKILL.md` from this repository into your `~/.openclaw/skills/remark
 | `remarkable_recent` | Get recently modified documents |
 | `remarkable_status` | Check connection status |
 | `remarkable_image` | Get PNG/SVG images of pages (supports OCR via sampling) |
+| `remarkable_upload` | Upload a PDF or EPUB file to a folder on the tablet |
+| `remarkable_mkdir` | Create folders with nested path support (mkdir -p) |
+| `remarkable_delete` | Delete a document or folder (destructive) |
+| `remarkable_move` | Move or rename documents and folders |
 
-All tools are **read-only** and return structured JSON with hints for next actions.
+All tools return structured JSON with hints for next actions.
 
 📖 **[Full Tools Documentation](docs/tools.md)**
+
+## Claude Code Integration
+
+Add to your `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "remarkable": {
+      "command": "uvx",
+      "args": ["remarkable-mcp-rw", "--wifi"],
+      "env": {
+        "REMARKABLE_HOST": "http://YOUR_TABLET_IP"
+      }
+    }
+  }
+}
+```
+
+### WiFi Setup
+
+1. On your reMarkable: **Settings → Storage** → Enable **"USB web interface"**
+2. Find your tablet's IP: **Settings → General → About → IP address**
+3. Set `REMARKABLE_HOST` to `http://YOUR_IP` in the config above
+4. The USB web interface works over both USB and WiFi on the same network
 
 ### Smart Features
 
