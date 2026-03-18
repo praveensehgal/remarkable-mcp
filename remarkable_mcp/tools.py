@@ -1690,17 +1690,15 @@ def remarkable_upload(file_path: str, destination: str = "/") -> str:
     """
     try:
         result = upload_document(file_path, destination)
-        return make_response(
-            result,
-            f"Uploaded '{result['name']}' to {result['destination']}."
-        )
+        return make_response(result, f"Uploaded '{result['name']}' to {result['destination']}.")
     except FileNotFoundError as e:
         return make_error("not_found", str(e), "Check the file path exists on your Mac.")
     except ValueError as e:
         return make_error("invalid_type", str(e), "Only .pdf and .epub files are supported.")
     except Exception as e:
         return make_error(
-            "upload_failed", str(e),
+            "upload_failed",
+            str(e),
             "Check tablet connection with remarkable_status().",
         )
 
@@ -1741,7 +1739,8 @@ def remarkable_mkdir(path: str) -> str:
         return make_error("invalid_path", str(e), "Provide a path like '/Folder/Subfolder'.")
     except Exception as e:
         return make_error(
-            "mkdir_failed", str(e),
+            "mkdir_failed",
+            str(e),
             "Check tablet connection with remarkable_status().",
         )
 
@@ -1772,19 +1771,17 @@ def remarkable_delete(path: str) -> str:
     """
     try:
         result = delete_item_by_path(path)
-        return make_response(
-            {"deleted": path, "success": result},
-            f"Deleted '{path}'."
-        )
+        return make_response({"deleted": path, "success": result}, f"Deleted '{path}'.")
     except FileNotFoundError:
         return make_error(
             "not_found",
             f"Path not found: {path}",
-            "Use remarkable_browse() to find the correct path."
+            "Use remarkable_browse() to find the correct path.",
         )
     except Exception as e:
         return make_error(
-            "delete_failed", str(e),
+            "delete_failed",
+            str(e),
             "Check tablet connection with remarkable_status().",
         )
 
@@ -1819,16 +1816,15 @@ def remarkable_move(source: str, destination: str, new_name: Optional[str] = Non
     try:
         result = move_item_by_path(source, destination, new_name)
         return make_response(
-            result,
-            f"Moved '{result['name']}' from {result['from']} to {result['to']}."
+            result, f"Moved '{result['name']}' from {result['from']} to {result['to']}."
         )
     except FileNotFoundError as e:
         return make_error(
-            "not_found", str(e),
-            "Use remarkable_browse() to verify source and destination paths."
+            "not_found", str(e), "Use remarkable_browse() to verify source and destination paths."
         )
     except Exception as e:
         return make_error(
-            "move_failed", str(e),
+            "move_failed",
+            str(e),
             "Check tablet connection with remarkable_status().",
         )

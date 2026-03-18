@@ -25,6 +25,7 @@ def crc32c(data: bytes) -> str:
     # Use crcmod if available, otherwise fallback
     try:
         import crcmod
+
         crc_fn = crcmod.predefined.mkCrcFun("crc-32c")
         crc_val = crc_fn(data)
     except ImportError:
@@ -104,11 +105,13 @@ def api_put_blob(token: str, blob_hash: str, data: bytes, rm_filename: str = "")
 
 def api_put_root(token: str, new_hash: str, generation: int) -> int:
     """Update root pointer atomically."""
-    payload = json.dumps({
-        "hash": new_hash,
-        "generation": generation,
-        "schemaVersion": 4,
-    }).encode()
+    payload = json.dumps(
+        {
+            "hash": new_hash,
+            "generation": generation,
+            "schemaVersion": 4,
+        }
+    ).encode()
     context = ssl.create_default_context()
     conn = http.client.HTTPSConnection(BASE_HOST, context=context, timeout=15)
     conn.request(
@@ -137,14 +140,16 @@ def parse_index(data: str) -> list[dict]:
     for line in lines[2:]:  # skip version + root header
         parts = line.split(":")
         if len(parts) >= 4:
-            entries.append({
-                "hash": parts[0],
-                "subfiles": parts[1],
-                "id": parts[2],
-                "type": int(parts[3]),
-                "size": int(parts[4]) if len(parts) >= 5 else 0,
-                "raw": line,
-            })
+            entries.append(
+                {
+                    "hash": parts[0],
+                    "subfiles": parts[1],
+                    "id": parts[2],
+                    "type": int(parts[3]),
+                    "size": int(parts[4]) if len(parts) >= 5 else 0,
+                    "raw": line,
+                }
+            )
     return entries
 
 
@@ -181,14 +186,16 @@ def main():
         try:
             meta, meta_hash, idx_text = get_metadata(token, entry["hash"])
             if meta.get("parent") == "" and not meta.get("deleted", False):
-                root_items.append({
-                    "name": meta.get("visibleName", "?"),
-                    "id": entry["id"],
-                    "entry": entry,
-                    "meta": meta,
-                    "meta_hash": meta_hash,
-                    "idx_text": idx_text,
-                })
+                root_items.append(
+                    {
+                        "name": meta.get("visibleName", "?"),
+                        "id": entry["id"],
+                        "entry": entry,
+                        "meta": meta,
+                        "meta_hash": meta_hash,
+                        "idx_text": idx_text,
+                    }
+                )
                 tp = "F" if meta.get("type") == "CollectionType" else "d"
                 print(f"  [{tp}] {meta.get('visibleName', '?')}")
         except Exception:
@@ -203,33 +210,39 @@ def main():
     now_ms = str(int(time.time() * 1000))
     print(f"\nCreating Archive folder (ID: {archive_id})...")
 
-    archive_meta = json.dumps({
-        "deleted": False,
-        "lastModified": now_ms,
-        "metadatamodified": True,
-        "modified": True,
-        "parent": "",
-        "pinned": False,
-        "synced": False,
-        "type": "CollectionType",
-        "version": 1,
-        "visibleName": "00 Archive",
-    }, indent=4).encode()
+    archive_meta = json.dumps(
+        {
+            "deleted": False,
+            "lastModified": now_ms,
+            "metadatamodified": True,
+            "modified": True,
+            "parent": "",
+            "pinned": False,
+            "synced": False,
+            "type": "CollectionType",
+            "version": 1,
+            "visibleName": "00 Archive",
+        },
+        indent=4,
+    ).encode()
 
-    archive_content = json.dumps({
-        "dummyDocument": False,
-        "extraMetadata": {},
-        "fileType": "",
-        "fontName": "",
-        "lastOpenedPage": 0,
-        "legacyEpub": False,
-        "lineHeight": -1,
-        "margins": 100,
-        "orientation": "portrait",
-        "pageCount": 0,
-        "textScale": 1,
-        "transform": {},
-    }, indent=4).encode()
+    archive_content = json.dumps(
+        {
+            "dummyDocument": False,
+            "extraMetadata": {},
+            "fileType": "",
+            "fontName": "",
+            "lastOpenedPage": 0,
+            "legacyEpub": False,
+            "lineHeight": -1,
+            "margins": 100,
+            "orientation": "portrait",
+            "pageCount": 0,
+            "textScale": 1,
+            "transform": {},
+        },
+        indent=4,
+    ).encode()
 
     meta_hash = sha256(archive_meta)
     content_hash = sha256(archive_content)

@@ -159,7 +159,7 @@ def resolve_path_to_item(path: str, collection) -> Any:
                 found = item
                 break
         if found is None:
-            raise FileNotFoundError(f"Path not found: /{'/'.join(parts[:i+1])}")
+            raise FileNotFoundError(f"Path not found: /{'/'.join(parts[: i + 1])}")
         if i < len(parts) - 1:
             current_parent = found.ID
         else:
@@ -246,6 +246,7 @@ def upload_document(file_path: str, destination: str = "/") -> Dict[str, Any]:
         Dict with upload result info
     """
     import os as _os
+
     client = get_rmapi()
     collection = client.get_meta_items()
 
@@ -294,9 +295,7 @@ def create_folder_path(path: str) -> Dict[str, Any]:
         existing = None
         for item in collection:
             parent = item.Parent if hasattr(item, "Parent") else ""
-            if (parent == current_parent
-                    and item.VissibleName == part
-                    and item.is_folder):
+            if parent == current_parent and item.VissibleName == part and item.is_folder:
                 existing = item
                 break
 
@@ -337,8 +336,11 @@ def delete_item_by_path(path: str, doc_id: str = None) -> bool:
 
 
 def move_item_by_path(
-    source: str, destination: str, new_name: str = None,
-    source_id: str = None, dest_id: str = None,
+    source: str,
+    destination: str,
+    new_name: str = None,
+    source_id: str = None,
+    dest_id: str = None,
 ) -> Dict[str, Any]:
     """Move or rename a document/folder.
 

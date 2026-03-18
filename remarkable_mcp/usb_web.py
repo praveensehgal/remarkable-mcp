@@ -356,8 +356,7 @@ class USBWebClient:
             return self._parse_upload_response(response, filename, parent_id)
         except requests.ConnectionError:
             raise RuntimeError(
-                f"Cannot connect to reMarkable at {self.host}. "
-                "Check WiFi connection and tablet IP."
+                f"Cannot connect to reMarkable at {self.host}. Check WiFi connection and tablet IP."
             )
         except requests.HTTPError as e:
             raise RuntimeError(f"Upload failed: {e}")
@@ -391,11 +390,13 @@ class USBWebClient:
         url = f"{self.host}{UPLOAD_URL}"
         import json as json_mod
 
-        metadata = json_mod.dumps({
-            "type": "CollectionType",
-            "visibleName": name,
-            "parent": parent_id,
-        })
+        metadata = json_mod.dumps(
+            {
+                "type": "CollectionType",
+                "visibleName": name,
+                "parent": parent_id,
+            }
+        )
 
         files = {"file": (f"{name}.metadata", metadata.encode(), "application/json")}
         data = {}

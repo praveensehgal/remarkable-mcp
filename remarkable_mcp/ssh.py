@@ -452,14 +452,16 @@ class SSHClient:
 
         return self._file_type_cache
 
-
     def _scp_upload(self, local_data: bytes, remote_path: str, timeout: int = 60) -> None:
         """Upload data to a file on the tablet via SSH."""
         ssh_args = [
             "ssh",
-            "-o", "ConnectTimeout=5",
-            "-o", "StrictHostKeyChecking=accept-new",
-            "-p", str(self.port),
+            "-o",
+            "ConnectTimeout=5",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+            "-p",
+            str(self.port),
             f"{self.user}@{self.host}",
             f"cat > '{remote_path}'",
         ]
@@ -470,7 +472,10 @@ class SSHClient:
             ssh_args = ["sshpass", "-p", self.password] + ssh_args
 
         result = subprocess.run(
-            ssh_args, input=local_data, capture_output=True, timeout=timeout,
+            ssh_args,
+            input=local_data,
+            capture_output=True,
+            timeout=timeout,
         )
         if result.returncode != 0:
             raise RuntimeError(f"SSH upload failed: {result.stderr.decode()}")
@@ -478,6 +483,7 @@ class SSHClient:
     def upload(self, file_data: bytes, filename: str, parent_id: str = "") -> Document:
         """Upload a PDF or EPUB to the tablet filesystem."""
         import uuid as _uuid
+
         doc_id = str(_uuid.uuid4())
         now_ms = str(int(datetime.now().timestamp() * 1000))
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -486,35 +492,41 @@ class SSHClient:
         self._scp_upload(file_data, f"{XOCHITL_PATH}/{doc_id}.{ext}")
 
         # Create .metadata
-        metadata = json.dumps({
-            "deleted": False,
-            "lastModified": now_ms,
-            "metadatamodified": True,
-            "modified": True,
-            "parent": parent_id,
-            "pinned": False,
-            "synced": False,
-            "type": "DocumentType",
-            "version": 1,
-            "visibleName": filename.rsplit(".", 1)[0] if "." in filename else filename,
-        }, indent=4)
+        metadata = json.dumps(
+            {
+                "deleted": False,
+                "lastModified": now_ms,
+                "metadatamodified": True,
+                "modified": True,
+                "parent": parent_id,
+                "pinned": False,
+                "synced": False,
+                "type": "DocumentType",
+                "version": 1,
+                "visibleName": filename.rsplit(".", 1)[0] if "." in filename else filename,
+            },
+            indent=4,
+        )
         self._scp_upload(metadata.encode(), f"{XOCHITL_PATH}/{doc_id}.metadata")
 
         # Create .content
-        content = json.dumps({
-            "dummyDocument": False,
-            "extraMetadata": {},
-            "fileType": ext,
-            "fontName": "",
-            "lastOpenedPage": 0,
-            "legacyEpub": False,
-            "lineHeight": -1,
-            "margins": 100,
-            "orientation": "portrait",
-            "pageCount": 0,
-            "textScale": 1,
-            "transform": {},
-        }, indent=4)
+        content = json.dumps(
+            {
+                "dummyDocument": False,
+                "extraMetadata": {},
+                "fileType": ext,
+                "fontName": "",
+                "lastOpenedPage": 0,
+                "legacyEpub": False,
+                "lineHeight": -1,
+                "margins": 100,
+                "orientation": "portrait",
+                "pageCount": 0,
+                "textScale": 1,
+                "transform": {},
+            },
+            indent=4,
+        )
         self._scp_upload(content.encode(), f"{XOCHITL_PATH}/{doc_id}.content")
 
         # Restart xochitl to pick up changes
@@ -523,51 +535,64 @@ class SSHClient:
         self._documents = []
         self._documents_by_id = {}
         return Document(
-            id=doc_id, hash="", name=filename,
-            doc_type="DocumentType", parent=parent_id,
+            id=doc_id,
+            hash="",
+            name=filename,
+            doc_type="DocumentType",
+            parent=parent_id,
         )
 
     def create_folder(self, name: str, parent_id: str = "") -> Document:
         """Create a folder on the tablet filesystem. Does NOT restart xochitl."""
         import uuid as _uuid
+
         doc_id = str(_uuid.uuid4())
         now_ms = str(int(datetime.now().timestamp() * 1000))
 
-        metadata = json.dumps({
-            "deleted": False,
-            "lastModified": now_ms,
-            "metadatamodified": True,
-            "modified": True,
-            "parent": parent_id,
-            "pinned": False,
-            "synced": False,
-            "type": "CollectionType",
-            "version": 1,
-            "visibleName": name,
-        }, indent=4)
+        metadata = json.dumps(
+            {
+                "deleted": False,
+                "lastModified": now_ms,
+                "metadatamodified": True,
+                "modified": True,
+                "parent": parent_id,
+                "pinned": False,
+                "synced": False,
+                "type": "CollectionType",
+                "version": 1,
+                "visibleName": name,
+            },
+            indent=4,
+        )
         self._scp_upload(metadata.encode(), f"{XOCHITL_PATH}/{doc_id}.metadata")
 
-        content = json.dumps({
-            "dummyDocument": False,
-            "extraMetadata": {},
-            "fileType": "",
-            "fontName": "",
-            "lastOpenedPage": 0,
-            "legacyEpub": False,
-            "lineHeight": -1,
-            "margins": 100,
-            "orientation": "portrait",
-            "pageCount": 0,
-            "textScale": 1,
-            "transform": {},
-        }, indent=4)
+        content = json.dumps(
+            {
+                "dummyDocument": False,
+                "extraMetadata": {},
+                "fileType": "",
+                "fontName": "",
+                "lastOpenedPage": 0,
+                "legacyEpub": False,
+                "lineHeight": -1,
+                "margins": 100,
+                "orientation": "portrait",
+                "pageCount": 0,
+                "textScale": 1,
+                "transform": {},
+            },
+            indent=4,
+        )
         self._scp_upload(content.encode(), f"{XOCHITL_PATH}/{doc_id}.content")
 
         self._documents = []
         self._documents_by_id = {}
         return Document(
-            id=doc_id, hash=doc_id, name=name,
-            doc_type="CollectionType", parent=parent_id,
+            id=doc_id,
+            hash=doc_id,
+            name=name,
+            doc_type="CollectionType",
+            parent=parent_id,
         )
 
     def delete_item(self, doc_id: str) -> bool:

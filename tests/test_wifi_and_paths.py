@@ -1,4 +1,5 @@
 """Tests for WiFi host support and path resolution."""
+
 import os
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +8,7 @@ import pytest
 from remarkable_mcp.usb_web import DEFAULT_USB_HOST, USBWebClient, create_usb_web_client
 
 # --- WiFi Host Tests ---
+
 
 class TestWiFiHost:
     def setup_method(self):
@@ -42,6 +44,7 @@ class TestWiFiHost:
 
 # --- Path Resolution Tests ---
 
+
 def _make_doc(doc_id, name, parent="", doc_type="DocumentType"):
     doc = MagicMock()
     doc.ID = doc_id
@@ -70,39 +73,47 @@ def _make_collection():
 class TestPathResolution:
     def test_resolve_root_folder(self):
         from remarkable_mcp.api import resolve_path_to_item
+
         item = resolve_path_to_item("/Work", _make_collection())
         assert item.ID == "f1"
 
     def test_resolve_nested_path(self):
         from remarkable_mcp.api import resolve_path_to_item
+
         item = resolve_path_to_item("/Work/Projects", _make_collection())
         assert item.ID == "f2"
 
     def test_resolve_deep_path(self):
         from remarkable_mcp.api import resolve_path_to_item
+
         item = resolve_path_to_item("/Work/Projects/Alpha", _make_collection())
         assert item.ID == "f3"
 
     def test_resolve_document(self):
         from remarkable_mcp.api import resolve_path_to_item
+
         item = resolve_path_to_item("/Work/Projects/Meeting Notes", _make_collection())
         assert item.ID == "d1"
 
     def test_resolve_nonexistent_raises(self):
         from remarkable_mcp.api import resolve_path_to_item
+
         with pytest.raises(FileNotFoundError):
             resolve_path_to_item("/Nonexistent", _make_collection())
 
     def test_resolve_parent_id_root(self):
         from remarkable_mcp.api import resolve_path_to_parent_id
+
         assert resolve_path_to_parent_id("/", _make_collection()) == ""
 
     def test_resolve_parent_id_folder(self):
         from remarkable_mcp.api import resolve_path_to_parent_id
+
         assert resolve_path_to_parent_id("/Work/Projects", _make_collection()) == "f2"
 
     def test_resolve_parent_id_not_folder_raises(self):
         from remarkable_mcp.api import resolve_path_to_parent_id
+
         with pytest.raises(ValueError):
             resolve_path_to_parent_id("/Work/Projects/Meeting Notes", _make_collection())
 
